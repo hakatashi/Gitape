@@ -61,11 +61,11 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
 
     # FIXME: O(N^2)
     for child in commit.children
-      level = commit-levels.find (level) -> level.some (is child)
-      assert level isnt undefined
-
-      level-index = commit-levels.index-of level
+      level-index = commit-levels.find-index (level) -> level.some (is child)
       assert level-index isnt -1
+
+      level = commit-levels[level-index]
+      assert level isnt undefined
 
       if shallowest-index-parents-exists < level-index
         shallowest-index-parents-exists = level-index
