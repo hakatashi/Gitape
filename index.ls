@@ -16,8 +16,7 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
 
   commits = log.split '\n' .map (line, index) ->
     [hash, ...parents] = line.split ' '
-    if parents.0 is ''
-      parents = []
+    parents .= filter (isnt '')
     {hash, parents, children: []}
 
   commit-hashes = Object.create null
@@ -79,12 +78,12 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
     svg:
       $:
         xmlns: 'http://www.w3.org/2000/svg'
-        width: 2000
-        height: commits.length * 50 + 60
+        width: 1800
+        height: commit-groups.length * 50 + 60
 
   for group, group-index in commit-groups
     for commit, commit-index in group
-      cx = (commit-index + group-index % 3) * 200 + 30
+      cx = commit-index * 200 + 30
       cy = group-index * 50 + 30
       svg.svg.[]circle.push $: {cx, cy, r: 15}
 
@@ -95,7 +94,7 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
       }
 
       for parent in commit.parents
-        parent-x = (parent.group.index-of(parent) + parent.group-index % 3) * 200 + 30
+        parent-x = parent.group.index-of(parent) * 200 + 30
         parent-y = parent.group-index * 50 + 30
 
         svg.svg.[]line.push $: {
