@@ -139,15 +139,16 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
         for parent in commit.parents
           parent-index = next-layout.find-index -> it and it.hash is parent.hash
           parent-x = parent-index * 30 + 15
-          parent-y = (layout-index + 1) * 50 + 30
+          dx = parent-x - cx
 
-          svg.svg.[]line.push $: {
-            x1: cx
-            y1: cy
-            x2: parent-x
-            y2: parent-y
+          svg.svg.[]path.push $: {
+            d: "
+              M #cx #cy
+              c 0 30, #dx 20, #dx 50
+            "
             'stroke-width': 3
             stroke: \black
+            fill: \transparent
           }
 
       if commit.type is \virtual
