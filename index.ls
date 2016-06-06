@@ -53,38 +53,38 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
   for commit, index in commits
     commit.index = index
 
-  # Compress commits by pushing them into commit groups
-  commit-groups = []
+  # Compress commits by pushing them into commit levels
+  commit-levels = []
 
   for commit in commits
     shallowest-index-parents-exists = -1
 
     # FIXME: O(N^2)
     for child in commit.children
-      group = commit-groups.find (group) -> group.some (is child)
-      assert group isnt undefined
+      level = commit-levels.find (level) -> level.some (is child)
+      assert level isnt undefined
 
-      group-index = commit-groups.index-of group
-      assert group-index isnt -1
+      level-index = commit-levels.index-of level
+      assert level-index isnt -1
 
-      if shallowest-index-parents-exists < group-index
-        shallowest-index-parents-exists = group-index
+      if shallowest-index-parents-exists < level-index
+        shallowest-index-parents-exists = level-index
 
-    commit-groups.[][shallowest-index-parents-exists + 1].push commit
-    commit.group-index = shallowest-index-parents-exists + 1
-    commit.group = commit-groups[shallowest-index-parents-exists + 1]
+    commit-levels.[][shallowest-index-parents-exists + 1].push commit
+    commit.level-index = shallowest-index-parents-exists + 1
+    commit.level = commit-levels[shallowest-index-parents-exists + 1]
 
   svg = do
     svg:
       $:
         xmlns: 'http://www.w3.org/2000/svg'
         width: 1800
-        height: commit-groups.length * 50 + 60
+        height: commit-levels.length * 50 + 60
 
-  for group, group-index in commit-groups
-    for commit, commit-index in group
+  for level, level-index in commit-levels
+    for commit, commit-index in level
       cx = commit-index * 200 + 30
-      cy = group-index * 50 + 30
+      cy = level-index * 50 + 30
       svg.svg.[]circle.push $: {cx, cy, r: 15}
 
       svg.svg.[]text.push _: commit.hash.slice(0, 10), $: {
@@ -94,8 +94,8 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
       }
 
       for parent in commit.parents
-        parent-x = parent.group.index-of(parent) * 200 + 30
-        parent-y = parent.group-index * 50 + 30
+        parent-x = parent.level.index-of(parent) * 200 + 30
+        parent-y = parent.level-index * 50 + 30
 
         svg.svg.[]line.push $: {
           x1: cx
