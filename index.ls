@@ -91,7 +91,7 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
     for previous-commit, x in previous-layout when previous-commit isnt undefined
       if previous-commit.type is \real
         for parent in previous-commit.parents
-          #assert.equal previous-commit.level-index, y - 1, util.inspect {x, y, level, previous-layout, new-layout, previous-commit, parent}, depth: 4
+          assert.equal previous-commit.level-index, y - 1
           distance = parent.level-index - (y - 1)
 
           parent-commit =
@@ -134,10 +134,10 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
       if commit.type is \real
         cx = commit-index * 30 + 15
         cy = layout-index * 50 + 30
-        svg.svg.[]circle.push $: {cx, cy, r: 10}
+        svg.svg.[]circle.push $: {cx, cy, r: 10, hash: commit.hash}
 
         for parent in commit.parents
-          parent-index = next-layout.filter (isnt undefined) .find-index (.hash is parent.hash)
+          parent-index = next-layout.find-index -> it and it.hash is parent.hash
           parent-x = parent-index * 30 + 15
           parent-y = (layout-index + 1) * 50 + 30
 
@@ -160,7 +160,7 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
           x2: x1
           y2: y2
           'stroke-width': 3
-          stroke: \red
+          stroke: \black
         }
 
   builder = new xml2js.Builder {+explicit-root}
