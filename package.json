@@ -19,6 +19,7 @@
   "homepage": "https://github.com/hakatashi/Gitape#readme",
   "dependencies": {
     "concat-stream": "^1.5.1",
-    "minimist": "^1.2.0"
+    "minimist": "^1.2.0",
+    "xml2js": "^0.4.16"
   }
 }

@@ -1,5 +1,6 @@
 require! {
   util
+  xml2js
   minimist
   'concat-stream'
   child_process: {spawn}
@@ -48,3 +49,45 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
     commits[index] = null
 
   commits .= filter (isnt null)
+
+  for commit, index in commits
+    commit.index = index
+
+  svg = do
+    svg:
+      $:
+        xmlns: 'http://www.w3.org/2000/svg'
+        width: 1000
+        height: commits.length * 50 + 60
+      circle: []
+      path: []
+      text: []
+
+  for commit in commits
+    cx = 500
+    cy = commit.index * 50 + 30
+    svg.svg.circle.push $: {cx, cy, r: 15}
+
+    x = cx + 30
+    y = cy + 5
+    svg.svg.text.push $: {x, y, font-size: 10}, _: commit.hash
+
+    for parent in commit.parents
+      parent-x = cx
+      parent-y = parent.index * 50 + 30
+      x1 = cx - (parent.index - commit.index) * 20
+      y1 = (cy + parent-y) / 2
+
+      d = "
+        M #cx #cy
+        Q #x1 #y1 #parent-x #parent-y
+      "
+      fill = \transparent
+      stroke = \black
+      stroke-width = 3
+
+      svg.svg.path.push $: {d, fill, stroke, 'stroke-width': stroke-width}
+
+  builder = new xml2js.Builder {+explicit-root}
+
+  process.stdout.write builder.build-object svg
