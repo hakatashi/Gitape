@@ -63,7 +63,7 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
     # FIXME: O(N^2)
     for child in commit.children
       group = commit-groups.find (group) -> group.some (is child)
-      assert group isnt undefined, util.inspect commit
+      assert group isnt undefined
 
       group-index = commit-groups.index-of group
       assert group-index isnt -1
@@ -81,17 +81,14 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
         xmlns: 'http://www.w3.org/2000/svg'
         width: 2000
         height: commits.length * 50 + 60
-      circle: []
-      line: []
-      text: []
 
   for group, group-index in commit-groups
     for commit, commit-index in group
       cx = (commit-index + group-index % 3) * 200 + 30
       cy = group-index * 50 + 30
-      svg.svg.circle.push $: {cx, cy, r: 15}
+      svg.svg.[]circle.push $: {cx, cy, r: 15}
 
-      svg.svg.text.push _: commit.hash.slice(0, 10), $: {
+      svg.svg.[]text.push _: commit.hash.slice(0, 10), $: {
         x: cx + 20
         y: cy + 5
         'font-size': 20
@@ -101,7 +98,7 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
         parent-x = (parent.group.index-of(parent) + parent.group-index % 3) * 200 + 30
         parent-y = parent.group-index * 50 + 30
 
-        svg.svg.line.push $: {
+        svg.svg.[]line.push $: {
           x1: cx
           y1: cy
           x2: parent-x
