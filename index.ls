@@ -1,6 +1,7 @@
 require! {
   util
   xml2js
+  assert
   minimist
   'concat-stream'
   child_process: {spawn}
@@ -53,40 +54,61 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
   for commit, index in commits
     commit.index = index
 
+  # Compress commits by pushing them into commit groups
+  commit-groups = []
+
+  for commit in commits.reverse!
+    shallowest-index-parents-exists = -1
+
+    # FIXME: O(N^2)
+    for parent in commit.parents
+      group = commit-groups.find (group) -> group.some (is parent)
+      assert group isnt undefined, util.inspect commit
+
+      group-index = commit-groups.index-of group
+      assert group-index isnt -1
+
+      if shallowest-index-parents-exists < group-index
+        shallowest-index-parents-exists = group-index
+
+    commit-groups.[][shallowest-index-parents-exists + 1].push commit
+    commit.group-index = shallowest-index-parents-exists + 1
+    commit.group = commit-groups[shallowest-index-parents-exists + 1]
+
   svg = do
     svg:
       $:
         xmlns: 'http://www.w3.org/2000/svg'
-        width: 1000
+        width: 2000
         height: commits.length * 50 + 60
       circle: []
-      path: []
+      line: []
       text: []
 
-  for commit in commits
-    cx = 500
-    cy = commit.index * 50 + 30
-    svg.svg.circle.push $: {cx, cy, r: 15}
+  for group, group-index in commit-groups
+    for commit, commit-index in group
+      cx = (commit-index + group-index % 3) * 200 + 30
+      cy = group-index * 50 + 30
+      svg.svg.circle.push $: {cx, cy, r: 15}
 
-    x = cx + 30
-    y = cy + 5
-    svg.svg.text.push $: {x, y, font-size: 10}, _: commit.hash
+      svg.svg.text.push _: commit.hash.slice(0, 10), $: {
+        x: cx + 20
+        y: cy + 5
+        'font-size': 20
+      }
 
-    for parent in commit.parents
-      parent-x = cx
-      parent-y = parent.index * 50 + 30
-      x1 = cx - (parent.index - commit.index) * 20
-      y1 = (cy + parent-y) / 2
+      for parent in commit.parents
+        parent-x = (parent.group.index-of(parent) + parent.group-index % 3) * 200 + 30
+        parent-y = parent.group-index * 50 + 30
 
-      d = "
-        M #cx #cy
-        Q #x1 #y1 #parent-x #parent-y
-      "
-      fill = \transparent
-      stroke = \black
-      stroke-width = 3
-
-      svg.svg.path.push $: {d, fill, stroke, 'stroke-width': stroke-width}
+        svg.svg.line.push $: {
+          x1: cx
+          y1: cy
+          x2: parent-x
+          y2: parent-y
+          'stroke-width': 3
+          stroke: \black
+        }
 
   builder = new xml2js.Builder {+explicit-root}
 
