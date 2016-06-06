@@ -57,12 +57,12 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
   # Compress commits by pushing them into commit groups
   commit-groups = []
 
-  for commit in commits.reverse!
+  for commit in commits
     shallowest-index-parents-exists = -1
 
     # FIXME: O(N^2)
-    for parent in commit.parents
-      group = commit-groups.find (group) -> group.some (is parent)
+    for child in commit.children
+      group = commit-groups.find (group) -> group.some (is child)
       assert group isnt undefined, util.inspect commit
 
       group-index = commit-groups.index-of group
