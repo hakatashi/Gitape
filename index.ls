@@ -74,6 +74,52 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
     commit.level-index = shallowest-index-parents-exists + 1
     commit.level = commit-levels[shallowest-index-parents-exists + 1]
 
+  # Layout X-axis
+  commit-levels.0.for-each (commit) -> commit.type = \real
+  level-layouts = [commit-levels.0]
+
+  for level, y in commit-levels when y >= 1
+    previous-layout = level-layouts[* - 1]
+    new-layout = []
+
+    # Layout virtual commits first
+    for previous-commit, x in previous-layout when previous-commit isnt undefined
+      if previous-commit.type is \virtual
+        new-layout[x] = Object.assign {} previous-commit
+
+    # Next, layout real commits
+    for previous-commit, x in previous-layout when previous-commit isnt undefined
+      if previous-commit.type is \real
+        for parent in previous-commit.parents
+          #assert.equal previous-commit.level-index, y - 1, util.inspect {x, y, level, previous-layout, new-layout, previous-commit, parent}, depth: 4
+          distance = parent.level-index - (y - 1)
+
+          parent-commit =
+            if distance is 1
+              real-parent = Object.assign {} parent
+              real-parent.type = \real
+              real-parent
+            else
+              # Clone parent commit and mark it as virtual
+              virtual-parent = Object.assign {} parent
+              virtual-parent.type = \virtual
+              virtual-parent
+
+          # Skip if parent commit is already laid out virtually or really
+          existing-commit = new-layout.filter (isnt undefined) .find (.hash is parent.hash)
+          if existing-commit
+            if existing-commit.type is \virtual and parent-commit.type is \real
+              existing-commit.type = \real
+            continue
+
+          spare-index = new-layout.find-index (is undefined)
+          if spare-index isnt -1
+            new-layout[spare-index] = parent-commit
+          else
+            new-layout.push parent-commit
+
+    level-layouts.push new-layout
+
   svg = do
     svg:
       $:
@@ -81,29 +127,40 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
         width: 1800
         height: commit-levels.length * 50 + 60
 
-  for level, level-index in commit-levels
-    for commit, commit-index in level
-      cx = commit-index * 200 + 30
-      cy = level-index * 50 + 30
-      svg.svg.[]circle.push $: {cx, cy, r: 15}
+  for layout, layout-index in level-layouts
+    next-layout = level-layouts[layout-index + 1]
 
-      svg.svg.[]text.push _: commit.hash.slice(0, 10), $: {
-        x: cx + 20
-        y: cy + 5
-        'font-size': 20
-      }
+    for commit, commit-index in layout when commit isnt undefined
+      if commit.type is \real
+        cx = commit-index * 30 + 15
+        cy = layout-index * 50 + 30
+        svg.svg.[]circle.push $: {cx, cy, r: 10}
 
-      for parent in commit.parents
-        parent-x = parent.level.index-of(parent) * 200 + 30
-        parent-y = parent.level-index * 50 + 30
+        for parent in commit.parents
+          parent-index = next-layout.filter (isnt undefined) .find-index (.hash is parent.hash)
+          parent-x = parent-index * 30 + 15
+          parent-y = (layout-index + 1) * 50 + 30
 
+          svg.svg.[]line.push $: {
+            x1: cx
+            y1: cy
+            x2: parent-x
+            y2: parent-y
+            'stroke-width': 3
+            stroke: \black
+          }
+
+      if commit.type is \virtual
+        x1 = commit-index * 30 + 15
+        y1 = layout-index * 50 + 30
+        y2 = (layout-index + 1) * 50 + 30
         svg.svg.[]line.push $: {
-          x1: cx
-          y1: cy
-          x2: parent-x
-          y2: parent-y
+          x1: x1
+          y1: y1
+          x2: x1
+          y2: y2
           'stroke-width': 3
-          stroke: \black
+          stroke: \red
         }
 
   builder = new xml2js.Builder {+explicit-root}
