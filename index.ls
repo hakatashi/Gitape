@@ -30,3 +30,21 @@ git-log.stdout.pipe concat-stream (log-buffer) ->
 
     for parent in commit.parents
       parent.children.push commit
+
+  # Abbreviate logs
+  for commit, index in commits
+    if commit.parents.length isnt 1
+    or commit.children.length isnt 1
+    or commit.parents.0.children.length isnt 1
+    or commit.children.0.parents.length isnt 1
+      continue
+
+    parent = commit.parents.0
+    child = commit.children.0
+
+    parent.children = [child]
+    child.parents = [parent]
+
+    commits[index] = null
+
+  commits .= filter (isnt null)
